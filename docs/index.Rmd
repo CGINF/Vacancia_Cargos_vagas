@@ -1,0 +1,68 @@
+---
+title: "Cargos Vagos e Vacâncias"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(readODS)
+library(tidyverse)
+library(echarts4r)
+```
+
+```{r}
+
+locale = locale = locale(decimal_mark = ",", 
+                         grouping_mark = ".")
+df <- readr::read_csv2("data-raw/df.csv", 
+                       locale = locale(decimal_mark = ",")
+)
+
+```
+
+
+```{r}
+df2 <- df1 |> dplyr::mutate(
+  data = lubridate::ym(ANO_MES),
+  Ano = stringr::str_sub(ANO_MES, start = 1, end = 4)
+  ) |> group_by(Ano, data) |> 
+  summarise(Aprovada = sum(APROVADA), 
+            `Distribuída` = sum(DISTRIBUIDA),
+            Ocupada = sum(OCUPADA),
+            Vaga = sum(VAGA)
+            ) |> ungroup() |> 
+  tidyr::pivot_longer(cols = c(Aprovada, `Distribuída`, Ocupada, Vaga), 
+                                  values_to = "Qtde") 
+ 
+
+```
+
+
+```{r}
+df2 |>  
+  group_by(name)  |>  
+  e_charts(data, timeline = FALSE, dispose = FALSE, )  |>  
+  e_bar(Qtde, locale = "PT") |> 
+  #echarts4r::e_x_axis( axisLabel = list(interval = 0, rotate = 45)) |> 
+  e_datazoom(type = "slider") |>
+  echarts4r::e_tooltip(trigger = "item") |> 
+  e_title("Cargos Vagos e Vacâncias", "Poder Executivo Federal") |>
+  e_y_axis(min = 200000, max = 750000, 
+           formatter = e_axis_formatter(
+             style = "decimal",
+             locale = "PT",
+             digits = 0), 
+           index = 1) |>
+  echarts4r::e_legend(right = 1) |> 
+  echarts4r::e_theme_custom('{"color":["#004580","#3182bd", "#67a9cf", "#9ecae1"]}')   # theme
+
+```
+
+```{r}
+df1$Qtde <- parse_integer(df1$Qtde, locale = locale(grouping_mark = "."))
+```
+
