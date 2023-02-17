@@ -1,0 +1,167 @@
+---
+title: "Cargos Vagos e Vacâncias"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(readODS)
+library(tidyverse)
+library(echarts4r)
+library(DT) 
+```
+
+```{r}
+
+locale = locale(decimal_mark = ",", 
+                grouping_mark = ".")
+df <- readr::read_csv2("data-raw/df1.csv")
+                       
+
+```
+
+
+```{r}
+df1 <- df|> dplyr::mutate(
+  data = lubridate::ym(ANO_MES),
+  Ano = stringr::str_sub(ANO_MES, start = 1, end = 4)
+  ) |> group_by(Ano, data) |> 
+  summarise(Aprovada = sum(APROVADA), 
+            `Distribuída` = sum(DISTRIBUIDA),
+            Ocupada = sum(OCUPADA),
+            Vaga = sum(VAGA)
+            ) |> ungroup() |> 
+  tidyr::pivot_longer(cols = c(Aprovada, `Distribuída`, Ocupada, Vaga), 
+                                  values_to = "Qtde") 
+ 
+
+```
+
+
+```{r}
+df1 |>  
+  group_by(name)  |>  
+  e_charts(data, timeline = FALSE, dispose = FALSE, )  |>  
+  e_bar(Qtde) |> 
+  #echarts4r::e_x_axis( axisLabel = list(interval = 0, rotate = 45)) |> 
+  e_datazoom(type = "slider") |>
+  echarts4r::e_tooltip(trigger = "axis") |> 
+  e_title("Cargos Vagos e Vacâncias", "Poder Executivo Federal") |>
+  e_y_axis(min = 200000, max = 750000, 
+           formatter = e_axis_formatter(
+             style = "decimal",
+             locale = "PT",
+             digits = 0), 
+           index = 1) |>
+  echarts4r::e_legend(top = 0, type = "scroll") |> 
+  echarts4r::e_theme_custom('{"color":["#004580","#3182bd", "#67a9cf", "#9ecae1"]}')   # theme
+
+```
+
+
+```{r}
+dados <- dir("data-raw/Vacancia/", full.names = T)|> 
+  map_df(readODS::read_ods, sheet = 2)
+```
+
+
+```{r}
+library(readr)
+cargos_vacancia <- read_delim("cargos_vacancia.csv", 
+    delim = ";", escape_double = FALSE, col_types = cols(ANO_MES = col_datetime(format = "%Y%m"), 
+        CARGO = col_character()), trim_ws = TRUE)
+View(cargos_vacancia)
+```
+
+```{r}
+dados <- cargos_vacancia %>%
+  rowwise() %>%
+  mutate(
+    Vacancia = sum(c_across(starts_with("VACANCIA_POR_")))
+  )
+```
+
+```{r}
+tabela <- dados |> 
+  dplyr::select(ANO_MES, NOME_ORGAO, NOME_CARGO, APROVADA, 
+                DISTRIBUIDA, OCUPADA, VAGA, Vacancia)
+```
+
+```{r datatable}
+tabela %>% 
+  DT::datatable(
+    filter = "top",  # allows filtering on each column
+    extensions = c(
+      "Buttons",  # add download buttons, etc
+      "Scroller"  # for scrolling down the rows rather than pagination
+    ),
+    rownames = TRUE,  # remove rownames
+    style = "bootstrap",
+    class = "compact",
+    width = "100%",
+    options = list(
+      dom = "Blrtip",  # specify content (search box, etc)
+      deferRender = TRUE,
+      pageLength = 30,
+      scrollY = 300,
+      scroller = TRUE,
+      columnDefs = list(
+        list(
+          visible = FALSE
+          ,
+          targets = c(2:3,7)
+        )
+      ), 
+      buttons = list(
+        I("colvis"),  # turn columns on and off
+        "csv",  # download as .csv
+        "excel"  # download as .xlsx
+      )
+    )
+    # ,
+    # colnames = c(
+    #   "Data de acesso" = "data",
+    #   "IP de acesso" = "ip",
+    #   "SIAPE" = "siape",
+    #   "Servidor" = "nome.x",
+    #   "Base" = "acesso",
+    #   "Núcleo" = "exercicio",
+    #   "Ano" = "Ano"
+    # )
+  )
+```
+
+# Cargos Extintos Cargos em extinção. Somar as qts ocupados para o cargos em extinção. Top 10 mais
+
+```{r}
+dados <- cargos_vacancia |> 
+  select(ANO_MES, NOME_ORGAO, PLANO_CARREIRA, NOME_CARGO, CARGO_EM_EXTINCAO, OCUPADA) |> 
+  dplyr::filter(
+  ANO_MES > lubridate::as_datetime("2022-11-01 00:00:00"), 
+  CARGO_EM_EXTINCAO == "S"
+  ) |> arrange(desc(OCUPADA)) |> slice(1:10)
+
+dados |> 
+  echarts4r::e_charts(NOME_CARGO) |> 
+  echarts4r::e_bar(serie = OCUPADA) |> 
+  e_x_axis(axisLabel = list(interval = 0, rotate = 45)) |> 
+  echarts4r::e_tooltip(trigger = "axis") # tooltip
+
+```
+ 
+```{r}
+df <- data.frame(x = 1:100, y = seq(1, 200, by = 2))
+
+df |>
+  e_charts(x) |>
+  e_polar(FALSE) |>
+  e_angle_axis(FALSE) |>
+  e_radius_axis(FALSE) |>
+  e_line(y, coord.system = "polar", smooth = TRUE) |>
+  e_legend(show = FALSE)
+```
+
