@@ -1,0 +1,79 @@
+---
+title: "Gestão de Pessoas (Executivo Federal) - Cargos Vagos e Vacâncias"
+output: 
+  flexdashboard::flex_dashboard:
+    theme: cerulean
+    base_font:
+      google: Prompt
+      code_font:
+        google: JetBrains Mono
+    orientation: columns
+    vertical_layout: fill
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+# Install thematic and un-comment for themed static plots (i.e., ggplot2)
+# thematic::thematic_rmd()
+```
+
+
+Column {.tabset data-width=400, data-height=400}
+-----------------------------------------------------------------------
+
+### [dados.gov/](https://dados.gov.br/dados/conjuntos-dados/gesto-de-pessoas-executivo-federal---cargos-vagos-e-vacncias)
+
+```{r datatable, echo=FALSE, fig.height=2, fig.width=3, message=FALSE, warning=FALSE}
+
+tabela <- readr::read_csv2("tabela.csv")
+tabela |> 
+  DT::datatable(
+    filter = "top",  # allows filtering on each column
+    extensions = c(
+      "Buttons",  # add download buttons, etc
+      "Scroller"  # for scrolling down the rows rather than pagination
+    ),
+    rownames = TRUE,  # remove rownames
+    style = "bootstrap",
+    class = "compact",
+    width = "100%",
+    options = list(
+      dom = "Blrtip",  # specify content (search box, etc)
+      deferRender = TRUE,
+      pageLength = 30,
+      scrollY = 300,
+      scroller = TRUE,
+      columnDefs = list(
+        list(
+          visible = FALSE
+          ,
+          targets = c(2:3,7)
+        )
+      ), 
+      buttons = list(
+        I("colvis"),  # turn columns on and off
+        "csv",  # download as .csv
+        "excel"  # download as .xlsx
+      )
+    )
+    # ,
+    # colnames = c(
+    #   "Data de acesso" = "data",
+    #   "IP de acesso" = "ip",
+    #   "SIAPE" = "siape",
+    #   "Servidor" = "nome.x",
+    #   "Base" = "acesso",
+    #   "Núcleo" = "exercicio",
+    #   "Ano" = "Ano"
+    # )
+  )
+```
+
+
+### [dados.gov/](https://dados.gov.br/dados/conjuntos-dados/gesto-de-pessoas-executivo-federal---cargos-vagos-e-vacncias)
+
+```{r}
+tabela |> reactable::reactable(filterable = TRUE,resizable = TRUE, paginationType = "simple", defaultPageSize = 30,
+    showPageSizeOptions = TRUE, onClick = "expand", showSortable = TRUE, compact = TRUE,groupBy = c("NOME_ORGAO","NOME_CARGO")) 
+```
+
