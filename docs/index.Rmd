@@ -2,8 +2,11 @@
 title: "Gestão de Pessoas (Executivo Federal)"
 output: 
   flexdashboard::flex_dashboard:
-    orientation: rows
-    vertical_layout: scroll
+    storyboard: true
+    orientation: columns
+    source_code: embed
+    vertical_layout: fill
+    theme: paper
 ---
 
 ```{r setup, include=FALSE}
@@ -64,8 +67,6 @@ library(echarts4r)
 <!--   ) -->
 <!-- ``` -->
 
-Column {data-width=500, data-height=400}
-----------------------------------------------------------------------
 
 ###  Cargos Vagos e Vacâncias
 
@@ -191,8 +192,7 @@ reactable(
 )
 ```
 
-Row
--------------------------------------
+
     
 ### Cargos Extintos - Top 10
 
@@ -270,4 +270,48 @@ reactable(
     )
   )
 )
+```
+
+
+### Vacâncias em Dezembro de 2022
+
+```{r}
+dados <- readr::read_csv2("../data-raw/dados.csv")
+
+tab <- dados |> dplyr::filter(
+  ANO_MES > lubridate::as_datetime("2022-11-01 00:00:00")) |> 
+  dplyr::select(
+    NOME_ORGAO,
+    PLANO_CARREIRA,
+    name = NOME_CARGO,
+    value=Vacancia
+  )
+
+# plano de carreira
+
+pl_carreira <-  tab |> 
+  dplyr::group_by(NOME_ORGAO, PLANO_CARREIRA) |> 
+  dplyr::summarise(
+    value = sum(value)
+  ) |> ungroup()
+
+carreira <-  tab |> tidyr::nest(children = c(name, value)) 
+
+Plano_carreira <- carreira |> 
+  left_join(pl_carreira) |>
+  relocate(NOME_ORGAO,name = PLANO_CARREIRA, value, children) |> 
+  nest(children = c(name, value, children)) 
+
+Orgao <-  tab |> 
+  dplyr::group_by(NOME_ORGAO) |> 
+  dplyr::summarise(
+    value = sum(value)
+  )
+  
+Plano_Orgao <- Orgao |> left_join(Plano_carreira) |> rename(name= NOME_ORGAO)
+
+
+Plano_Orgao |>
+  e_charts() |>
+  e_treemap()
 ```
