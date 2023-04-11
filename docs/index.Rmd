@@ -279,6 +279,7 @@ reactable(
 dados <- readr::read_csv2("../data-raw/dados.csv")
 
 tab <- dados |> dplyr::filter(
+  CARGO_EM_EXTINCAO == "N",
   ANO_MES > lubridate::as_datetime("2022-11-01 00:00:00")) |> 
   dplyr::select(
     NOME_ORGAO,
@@ -310,8 +311,23 @@ Orgao <-  tab |>
   
 Plano_Orgao <- Orgao |> left_join(Plano_carreira) |> rename(name= NOME_ORGAO)
 
+e_common(font_family = "helvetica", theme = "westeros")
+
+formatar_numero_br <- function(serie) {
+  htmlwidgets::JS(
+    glue::glue(
+      "function(params) {return Intl.NumberFormat('pt-BR', { style: 'decimal'}).format(params.value[{{serie}}]);}",
+      .open = "{{",
+      .close = "}}"
+    )
+  )
+}
 
 Plano_Orgao |>
   e_charts() |>
-  e_treemap()
+  e_treemap() |> 
+  echarts4r::e_title(text = "Vacância - Dez/2022") |> 
+  echarts4r::e_tooltip("item")  
+
+    
 ```
